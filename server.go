@@ -2,13 +2,28 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"justtest/lib"
 )
 
-var ENV *string = flag.String("d", "development", "Enviorment development staging production")
+/*
+ex:
+ go run server.go -mode server -p 8080
+ go run server.go -mode client -file target  -h 192.168.43.58:8080
+*/
 
 func main() {
-	var filePath *string = flag.String("file", "musicfile", "Use -file <filesource>")
+	var mode *string = flag.String("mode", "server", "Use -mode <filesource>")
+	var filePath *string = flag.String("file", "nothing", "Use -file <filesource>")
+	var host *string = flag.String("h", "127.0.0.1:8083", "Use -h <filesource>")
+	var listenPort *string = flag.String("p", "8083", "Use -p <filesource>")
 	flag.Parse()
-	lib.Send(*filePath)
+
+	if *mode == "server" {
+		lib.Receive(*listenPort)
+	} else if *mode == "client" {
+		lib.Send(*filePath, *host)
+	} else {
+		fmt.Println("No such mode.")
+	}
 }

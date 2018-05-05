@@ -8,11 +8,11 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
-const addr = "127.0.0.1:8082"
-const bufferSize = 1024 * 5 // 5k
+const bufferSize = 512 // 5k
 const headerSize = 128
 
 type FileHeader struct {
@@ -21,50 +21,50 @@ type FileHeader struct {
 	PackageIndex int
 }
 
-func Send(path string) {
-	listener, err := net.Listen("tcp", addr) //使用协议是tcp，监听的地址是addr
+func Send(path, addr string) {
+	pathes, _ := getFilelist(path)
+	for _, p := range pathes {
+		SendSingleFile(p, addr)
+	}
+}
+
+func SendSingleFile(path, addr string) {
+	conn, err := net.Dial("tcp", addr) //拨号操作，需要指定协议。
+	defer conn.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer listener.Close() //关闭监听的端口
-	for {
-		conn, err := listener.Accept() //用conn接收链接
-		if err != nil {
-			log.Fatal(err)
-		}
-		/// 写文件 start
-		////////////////
-		fileInfo, _ := os.Stat(path)
-		fileHeader := &FileHeader{}
-		fileHeader.FileName = fileInfo.Name()
-		fileHeader.FileSize = fileInfo.Size()
-
-		////////////////path
-		file, _ := os.Open(path)
-		defer file.Close()
-		buf := make([]byte, bufferSize-headerSize)
-		for {
-			n, err := file.Read(buf)
-			if err != nil && err != io.EOF {
-				panic(err)
-			} //
-			if 0 == n {
-				break
-			}
-			// time.Sleep(time.Second / 1000)
-			fileHeader.PackageIndex++
-			fileHeaderBytes, _ := json.Marshal(fileHeader)
-
-			headers, _ := makeHeaderBytes(string(fileHeaderBytes), headerSize, " ")
-			headers = append(headers, buf[:n]...)
-
-			fmt.Println("n: ", n, "  ", "headers:", len(headers), string(headers[:headerSize]))
-			// conn.Write(buf[:n])
-			conn.Write(headers)
-		}
-		/// 写文件 end
-		conn.Close() //与客户端断开连接。
+	/////////////  写文件 start
+	fileInfo, errFileInfo := os.Stat(path)
+	if errFileInfo != nil {
+		fmt.Println(errFileInfo)
 	}
+	fileHeader := &FileHeader{}
+	fileHeader.FileName = fileInfo.Name()
+	fileHeader.FileSize = fileInfo.Size()
+
+	file, _ := os.Open(path)
+	defer file.Close()
+	buf := make([]byte, bufferSize-headerSize)
+	for {
+		n, err := file.Read(buf)
+		if err != nil && err != io.EOF {
+			panic(err)
+		} //
+		if 0 == n {
+			break
+		}
+		// time.Sleep(time.Second / 1000)
+		fileHeader.PackageIndex++
+		fileHeaderBytes, _ := json.Marshal(fileHeader)
+
+		headers, _ := makeHeaderBytes(string(fileHeaderBytes), headerSize, " ")
+		headers = append(headers, buf[:n]...)
+
+		fmt.Println("n: ", n, "  ", "headers:", len(headers), string(headers[:headerSize]))
+		conn.Write(headers)
+	}
+	/// 写文件 end
 }
 
 func makeHeaderBytes(str string, size int, fill string) ([]byte, error) {
@@ -79,4 +79,22 @@ func makeHeaderBytes(str string, size int, fill string) ([]byte, error) {
 		}
 		return bytes, nil
 	}
+}
+
+func getFilelist(path string) ([]string, error) {
+	var allPath []string
+	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+		if f == nil {
+			return err
+		}
+		if f.IsDir() {
+			return nil
+		}
+		allPath = append(allPath, path)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return allPath, nil
 }
