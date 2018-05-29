@@ -47,9 +47,11 @@ func Receive(listenPort string) {
 				fmt.Println("出错了！", errF)
 			}
 			writer := bufio.NewWriterSize(file, bufferSize)
-			fmt.Println(fileHeader, len(buf), "n->", n)
+			// fmt.Println(fileHeader, len(buf), "n->", n)
 			///
-			nn, ew := writer.Write(buf[headerSize:n])
+			nn, ew := writer.Write(buf[headerSize:n]) // panic: runtime error: slice bounds out of range
+			fmt.Println("len(buf):", len(buf), " headerSize:", headerSize, "n: ", n)
+
 			writer.Flush()
 			file.Close()
 			if ew != nil {

@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"justtest/lib"
+	"socketTest/lib"
 )
 
 /*
@@ -27,3 +27,5 @@ func main() {
 		fmt.Println("No such mode.")
 	}
 }
+
+// scp -r root@144.168.59.112:/home/downloads ./FFFF

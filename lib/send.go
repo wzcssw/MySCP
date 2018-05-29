@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 const bufferSize = 512 // 5k
@@ -29,7 +30,8 @@ func Send(path, addr string) {
 }
 
 func SendSingleFile(path, addr string) {
-	conn, err := net.Dial("tcp", addr) //拨号操作，需要指定协议。
+	// conn, err := net.Dial("tcp", addr) //拨号操作，需要指定协议。
+	conn, err := net.DialTimeout("tcp", addr, 4*time.Second) // 带超时机制的Dial
 	defer conn.Close()
 	if err != nil {
 		log.Fatal(err)
